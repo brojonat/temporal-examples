@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 
+	"github.com/brojonat/temporal-examples/auction/temporal"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
 )
@@ -24,8 +25,10 @@ func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 
 	// register workflows
 	w := worker.New(c, TaskQueue, worker.Options{})
+	w.RegisterWorkflow(temporal.RunAuctionWF)
 
 	// register activities
+	w.RegisterActivity(temporal.RunAuctionCompleteWebhook)
 	return w.Run(worker.InterruptCh())
 
 }

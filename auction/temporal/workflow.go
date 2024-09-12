@@ -1,13 +1,6 @@
-package auction
+package temporal
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"time"
 
 	"go.temporal.io/sdk/temporal"
@@ -37,6 +30,7 @@ type RunAuctionWFRequest struct {
 	Duration     time.Duration `json:"duration"`
 	Item         string        `json:"item"`
 	ReservePrice float64       `json:"reserve_price"`
+	Webhook      string        `json:"webhook"`
 }
 
 type AuctionBid struct {
@@ -95,30 +89,6 @@ func RunAuctionWF(ctx workflow.Context, r RunAuctionWFRequest) error {
 		HeartbeatTimeout:    60 * time.Second,
 	}
 	ctx = workflow.WithActivityOptions(ctx, aopts)
-	err = workflow.ExecuteActivity(ctx, AuctionCompleteWebhook, topBid).Get(ctx, nil)
+	err = workflow.ExecuteActivity(ctx, RunAuctionCompleteWebhook, r.Webhook, topBid).Get(ctx, nil)
 	return err
-}
-
-func AuctionCompleteWebhook(ctx context.Context, bid AuctionBid) error {
-	b, err := json.Marshal(bid)
-	if err != nil {
-		return nil
-	}
-	r, err := http.NewRequest(http.MethodPost, os.Getenv("WEBHOOK_ENDPOINT"), bytes.NewReader(b))
-	if err != nil {
-		return nil
-	}
-	res, err := http.DefaultClient.Do(r)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.StatusCode == http.StatusOK {
-		return nil
-	}
-	b, err = io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("bad response (%d) and error reading body: %w", res.StatusCode, err)
-	}
-	return fmt.Errorf("bad response (%d) and error: %s", res.StatusCode, b)
 }

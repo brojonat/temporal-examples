@@ -1,4 +1,4 @@
-package auction
+package server
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 
+	"github.com/brojonat/temporal-examples/auction/temporal"
 	"github.com/brojonat/temporal-examples/convenience"
 	"github.com/brojonat/temporal-examples/worker"
 	"go.temporal.io/sdk/client"
@@ -23,7 +23,7 @@ func RunHTTPServer(
 
 	tc, err := client.Dial(client.Options{
 		Logger:   l,
-		HostPort: os.Getenv("TEMPORAL_HOST"),
+		HostPort: tcHost,
 	})
 	if err != nil {
 		return fmt.Errorf("could not initialize Temporal client: %w", err)
@@ -45,7 +45,7 @@ func RunHTTPServer(
 func handleStartAuction(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		var payload RunAuctionWFRequest
+		var payload temporal.RunAuctionWFRequest
 		err := json.NewDecoder(r.Body).Decode(&payload)
 		if err != nil {
 			convenience.WriteInternalError(l, w, err)
@@ -55,7 +55,7 @@ func handleStartAuction(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			ID:        payload.Item,
 			TaskQueue: worker.TaskQueue,
 		}
-		_, err = tc.ExecuteWorkflow(r.Context(), wopts, RunAuctionWF, payload)
+		_, err = tc.ExecuteWorkflow(r.Context(), wopts, temporal.RunAuctionWF, payload)
 		if err != nil {
 			convenience.WriteInternalError(l, w, err)
 			return
@@ -69,12 +69,12 @@ func handleGetTopBid(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		response, err := tc.QueryWorkflow(
-			r.Context(), r.URL.Query().Get("auction-id"), "", QueryTypeTopBid)
+			r.Context(), r.URL.Query().Get("item"), "", temporal.QueryTypeTopBid)
 		if err != nil {
 			convenience.WriteInternalError(l, w, err)
 			return
 		}
-		var result QueryResultTopBid
+		var result temporal.QueryResultTopBid
 		if err = response.Get(&result); err != nil {
 			convenience.WriteInternalError(l, w, err)
 			return
@@ -89,14 +89,14 @@ func handleGetTopBid(l *slog.Logger, tc client.Client) http.HandlerFunc {
 func handlePlaceBid(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		var payload AuctionBid
+		var payload temporal.AuctionBid
 		err := json.NewDecoder(r.Body).Decode(&payload)
 		if err != nil {
 			convenience.WriteBadRequestError(w, err)
 			return
 		}
 
-		err = tc.SignalWorkflow(r.Context(), payload.Item, "", SignalTypePlaceBid, payload)
+		err = tc.SignalWorkflow(r.Context(), payload.Item, "", temporal.SignalTypePlaceBid, payload)
 		if err != nil {
 			convenience.WriteBadRequestError(w, err)
 			return
@@ -110,7 +110,7 @@ func handlePlaceBid(l *slog.Logger, tc client.Client) http.HandlerFunc {
 func handleWinner(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		var payload AuctionBid
+		var payload temporal.AuctionBid
 		err := json.NewDecoder(r.Body).Decode(&payload)
 		if err != nil {
 			convenience.WriteBadRequestError(w, err)
