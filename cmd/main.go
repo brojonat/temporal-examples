@@ -98,7 +98,7 @@ func main() {
 								Name:    "webhook",
 								Aliases: []string{"web", "w"},
 								Usage:   "Webhook endpoint for auction results",
-								Value:   "http://localhost:8080",
+								Value:   "http://localhost:8080/handle-winner-bid",
 							},
 						},
 						Action: func(ctx *cli.Context) error {

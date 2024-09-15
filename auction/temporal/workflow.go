@@ -49,32 +49,37 @@ func RunAuctionWF(ctx workflow.Context, r RunAuctionWFRequest) error {
 		return err
 	}
 
+	// initialization for main selector loop
 	doLoop := true
 	var signal AuctionBid
-
-	bidChan := workflow.GetSignalChannel(ctx, SignalTypePlaceBid)
-	auctionOverChan := workflow.NewChannel(ctx)
-
 	selector := workflow.NewSelector(ctx)
 
 	// receive auction bids
+	bidChan := workflow.GetSignalChannel(ctx, SignalTypePlaceBid)
 	selector.AddReceive(bidChan, func(c workflow.ReceiveChannel, more bool) {
 		c.Receive(ctx, &signal)
 		if signal.Amount > topBid.Amount {
 			topBid = signal
 		}
 	})
-	// receive auction over
+
+	// receive auction over; uses a separate goroutine that will block until the
+	// auction is over before sending on the auctionOverChan.
+	auctionOverChan := workflow.NewChannel(ctx)
+	workflow.Go(ctx, func(ictx workflow.Context) {
+		wait := time.Until(time.Now().Add(r.Duration))
+		workflow.AwaitWithTimeout(ictx, wait, func() bool { return false })
+		auctionOverChan.Send(ictx, nil)
+	})
 	selector.AddReceive(auctionOverChan, func(c workflow.ReceiveChannel, more bool) {
-		c.Receive(ctx, nil) // FIXME?
+		c.Receive(ctx, nil)
 		doLoop = false
 	})
+
 	// loop receive bids until the auction is over
-	workflow.Go(ctx, func(ctx workflow.Context) {
-		for doLoop {
-			selector.Select(ctx)
-		}
-	})
+	for doLoop {
+		selector.Select(ctx)
+	}
 
 	// send the webhook with the results
 	rp := temporal.RetryPolicy{

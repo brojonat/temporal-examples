@@ -34,7 +34,7 @@ func RunHTTPServer(
 	mux.Handle("POST /start-auction", handleStartAuction(l, tc))
 	mux.Handle("GET /get-top-bid", handleGetTopBid(l, tc))
 	mux.Handle("POST /place-bid", handlePlaceBid(l, tc))
-	mux.Handle("GET /handle-winner-bid", handleWinner(l, tc))
+	mux.Handle("POST /handle-winner-bid", handleWinner(l, tc))
 
 	listenAddr := fmt.Sprintf(":%s", port)
 	l.Info("listening", "port", listenAddr)
@@ -117,9 +117,8 @@ func handleWinner(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			return
 		}
 
-		// log the result, write it to a database, start another workflow, etc
 		l.Info(
-			"got auction winner",
+			"got auction results",
 			"item", payload.Item,
 			"bidder", payload.Bidder,
 			"amount", payload.Amount,
