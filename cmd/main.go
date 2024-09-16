@@ -50,7 +50,7 @@ func main() {
 							},
 						},
 						Action: func(ctx *cli.Context) error {
-							return run_server(ctx)
+							return auction_run_server(ctx)
 						},
 					},
 					{
@@ -64,11 +64,11 @@ func main() {
 							},
 						},
 						Action: func(ctx *cli.Context) error {
-							return run_worker(ctx)
+							return auction_run_worker(ctx)
 						},
 					},
 					{
-						Name:  "start-auction",
+						Name:  "start",
 						Usage: "start an auction",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
@@ -98,7 +98,7 @@ func main() {
 								Name:    "webhook",
 								Aliases: []string{"web", "w"},
 								Usage:   "Webhook endpoint for auction results",
-								Value:   "http://localhost:8080/handle-winner-bid",
+								Value:   "http://localhost:8080/handle-result",
 							},
 						},
 						Action: func(ctx *cli.Context) error {
@@ -106,8 +106,8 @@ func main() {
 						},
 					},
 					{
-						Name:  "get-top-bid",
-						Usage: "Get the top bid in an auction",
+						Name:  "get-state",
+						Usage: "Get the current state of the auction",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:  "endpoint",
@@ -122,11 +122,11 @@ func main() {
 							},
 						},
 						Action: func(ctx *cli.Context) error {
-							return get_top_bid(ctx)
+							return get_auction_state(ctx)
 						},
 					},
 					{
-						Name:  "place-bid",
+						Name:  "bid",
 						Usage: "place a bid in an auction",
 						Flags: []cli.Flag{
 							&cli.StringFlag{
@@ -154,7 +154,138 @@ func main() {
 							},
 						},
 						Action: func(ctx *cli.Context) error {
-							return place_bid(ctx)
+							return auction_place_bid(ctx)
+						},
+					},
+				},
+			},
+			{
+				Name:  "poll",
+				Usage: "poll related subcommands",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "run-server",
+						Usage: "Run the poll server",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "port",
+								Aliases: []string{"p"},
+								Usage:   "Port to listen on",
+								Value:   "8080",
+							},
+							&cli.StringFlag{
+								Name:  "temporal-host",
+								Usage: "Temporal host",
+								Value: "localhost:7233",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return poll_run_server(ctx)
+						},
+					},
+					{
+						Name:  "run-worker",
+						Usage: "Run the temporal worker",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "temporal-host",
+								Usage: "Temporal host",
+								Value: "localhost:7233",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return poll_run_worker(ctx)
+						},
+					},
+					{
+						Name:  "start",
+						Usage: "start a poll",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "endpoint",
+								Usage: "HTTP server endpoint",
+								Value: "http://localhost:8080",
+							},
+							&cli.StringFlag{
+								Name:     "prompt",
+								Required: true,
+								Aliases:  []string{"p", "q"},
+								Usage:    "Prompt question for the poll",
+							},
+							&cli.StringSliceFlag{
+								Name:     "option",
+								Required: true,
+								Aliases:  []string{"opt", "o"},
+								Usage:    "Options for poll",
+							},
+							&cli.StringFlag{
+								Name:     "duration",
+								Required: true,
+								Aliases:  []string{"dur", "d"},
+								Usage:    "Poll duration in Go time.Duration format (e.g., 15m)",
+							},
+							&cli.StringFlag{
+								Name:    "webhook",
+								Aliases: []string{"web", "w"},
+								Usage:   "Webhook endpoint for poll results",
+								Value:   "http://localhost:8080/handle-result",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return start_poll(ctx)
+						},
+					},
+					{
+						Name:  "get-state",
+						Usage: "Get the current state of the poll",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "endpoint",
+								Usage: "HTTP endpoint",
+								Value: "http://localhost:8080",
+							},
+							&cli.StringFlag{
+								Name:     "prompt",
+								Required: true,
+								Aliases:  []string{"p"},
+								Usage:    "Prompt of the poll to fetch results for",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return get_poll_state(ctx)
+						},
+					},
+					{
+						Name:  "vote",
+						Usage: "vote on a poll",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "endpoint",
+								Usage: "HTTP endpoint",
+								Value: "http://localhost:8080",
+							},
+							&cli.StringFlag{
+								Name:     "prompt",
+								Required: true,
+								Aliases:  []string{"p"},
+								Usage:    "Prompt of the poll to vote on",
+							},
+							&cli.StringFlag{
+								Name:     "option",
+								Required: true,
+								Aliases:  []string{"opt", "o"},
+								Usage:    "Option to cast vote for",
+							},
+							&cli.Float64Flag{
+								Name:     "amount",
+								Required: true,
+								Aliases:  []string{"a"},
+								Usage:    "Magnitude of vote",
+								Value:    1,
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return poll_vote(ctx)
 						},
 					},
 				},

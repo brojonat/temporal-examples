@@ -14,13 +14,13 @@ import (
 
 const (
 	// query types
-	QueryTypeTopBid = "top-bid"
+	QueryTypeState = "state"
 
 	// signal types
-	SignalTypePlaceBid = "place-bid"
+	SignalTypeBid = "bid"
 )
 
-type QueryResultTopBid struct {
+type QueryResultState struct {
 	Bidder string  `json:"bidder"`
 	Amount float64 `json:"amount"`
 }
@@ -42,7 +42,7 @@ type AuctionBid struct {
 func RunAuctionWF(ctx workflow.Context, r RunAuctionWFRequest) error {
 	// register a handler to return the current top bid
 	topBid := AuctionBid{Item: r.Item}
-	err := workflow.SetQueryHandler(ctx, QueryTypeTopBid, func() (AuctionBid, error) {
+	err := workflow.SetQueryHandler(ctx, QueryTypeState, func() (AuctionBid, error) {
 		return topBid, nil
 	})
 	if err != nil {
@@ -55,7 +55,7 @@ func RunAuctionWF(ctx workflow.Context, r RunAuctionWFRequest) error {
 	selector := workflow.NewSelector(ctx)
 
 	// receive auction bids
-	bidChan := workflow.GetSignalChannel(ctx, SignalTypePlaceBid)
+	bidChan := workflow.GetSignalChannel(ctx, SignalTypeBid)
 	selector.AddReceive(bidChan, func(c workflow.ReceiveChannel, more bool) {
 		c.Receive(ctx, &signal)
 		if signal.Amount > topBid.Amount {

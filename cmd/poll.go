@@ -9,13 +9,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/brojonat/temporal-examples/auction/server"
-	"github.com/brojonat/temporal-examples/auction/temporal"
+	"github.com/brojonat/temporal-examples/convenience"
+	"github.com/brojonat/temporal-examples/poll/server"
+	"github.com/brojonat/temporal-examples/poll/temporal"
 	"github.com/brojonat/temporal-examples/worker"
 	"github.com/urfave/cli/v2"
 )
 
-func auction_run_server(ctx *cli.Context) error {
+func poll_run_server(ctx *cli.Context) error {
 	return server.RunHTTPServer(
 		ctx.Context,
 		getDefaultLogger(slog.LevelInfo),
@@ -24,7 +25,7 @@ func auction_run_server(ctx *cli.Context) error {
 	)
 }
 
-func auction_run_worker(ctx *cli.Context) error {
+func poll_run_worker(ctx *cli.Context) error {
 	return worker.RunWorker(
 		ctx.Context,
 		getDefaultLogger(slog.LevelInfo),
@@ -32,17 +33,23 @@ func auction_run_worker(ctx *cli.Context) error {
 	)
 }
 
-func start_auction(ctx *cli.Context) error {
+func start_poll(ctx *cli.Context) error {
 	dur, err := time.ParseDuration(ctx.String("duration"))
 	if err != nil {
 		return err
 	}
-	body := temporal.RunAuctionWFRequest{
-		StartTime:    time.Now(),
-		Duration:     dur,
-		Item:         ctx.String("item"),
-		ReservePrice: ctx.Float64("reserve-price"),
-		Webhook:      ctx.String("webhook"),
+	body := temporal.RunPollWFRequest{
+		StartTime: time.Now(),
+		Duration:  dur,
+		Prompt:    ctx.String("prompt"),
+		Options:   ctx.StringSlice("option"),
+		Webhook:   ctx.String("webhook"),
+	}
+	if len(body.Prompt) < 1 {
+		return fmt.Errorf("must supply a poll prompt")
+	}
+	if len(body.Options) < 1 {
+		return fmt.Errorf("must supply at least one option")
 	}
 	b, err := json.Marshal(body)
 	if err != nil {
@@ -67,17 +74,26 @@ func start_auction(ctx *cli.Context) error {
 	return fmt.Errorf("bad response code (%d): %s", res.StatusCode, b)
 }
 
-func auction_place_bid(ctx *cli.Context) error {
-	body := temporal.AuctionBid{
-		Item:   ctx.String("item"),
-		Bidder: ctx.String("bidder"),
+func poll_vote(ctx *cli.Context) error {
+	body := temporal.PollVote{
+		Prompt: ctx.String("prompt"),
+		Option: ctx.String("option"),
 		Amount: ctx.Float64("amount"),
+	}
+	if len(body.Prompt) < 1 {
+		return fmt.Errorf("must supply a poll prompt")
+	}
+	if body.Option == "" {
+		return fmt.Errorf("must specify option")
+	}
+	if body.Amount < 0 {
+		return fmt.Errorf("cannot vote a negative amount")
 	}
 	b, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	r, err := http.NewRequest(http.MethodPost, ctx.String("endpoint")+"/bid", bytes.NewReader(b))
+	r, err := http.NewRequest(http.MethodPost, ctx.String("endpoint")+"/vote", bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
@@ -96,13 +112,13 @@ func auction_place_bid(ctx *cli.Context) error {
 	return fmt.Errorf("bad response code (%d): %s", res.StatusCode, b)
 }
 
-func get_auction_state(ctx *cli.Context) error {
+func get_poll_state(ctx *cli.Context) error {
 	r, err := http.NewRequest(http.MethodGet, ctx.String("endpoint")+"/get-state", nil)
 	if err != nil {
 		return err
 	}
 	q := r.URL.Query()
-	q.Add("item", ctx.String("item"))
+	q.Add("prompt", ctx.String("prompt"))
 	r.URL.RawQuery = q.Encode()
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
@@ -116,6 +132,11 @@ func get_auction_state(ctx *cli.Context) error {
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response code (%d): %s", res.StatusCode, b)
 	}
-	fmt.Printf("%s\n", b)
+	var body convenience.DefaultJSONResponse
+	err = json.Unmarshal(b, &body)
+	if err != nil {
+		return fmt.Errorf("could not parse message: %w: %s", err, b)
+	}
+	fmt.Printf(body.Message)
 	return nil
 }
