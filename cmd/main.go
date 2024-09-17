@@ -98,7 +98,7 @@ func main() {
 								Name:    "webhook",
 								Aliases: []string{"web", "w"},
 								Usage:   "Webhook endpoint for auction results",
-								Value:   "http://localhost:8080/handle-result",
+								Value:   "http://localhost:8080/webhook",
 							},
 						},
 						Action: func(ctx *cli.Context) error {
@@ -228,7 +228,7 @@ func main() {
 								Name:    "webhook",
 								Aliases: []string{"web", "w"},
 								Usage:   "Webhook endpoint for poll results",
-								Value:   "http://localhost:8080/handle-result",
+								Value:   "http://localhost:8080/webhook",
 							},
 						},
 						Action: func(ctx *cli.Context) error {
@@ -286,6 +286,124 @@ func main() {
 						},
 						Action: func(ctx *cli.Context) error {
 							return poll_vote(ctx)
+						},
+					},
+				},
+			},
+			{
+				Name:  "dms",
+				Usage: "DMS related subcommands",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "run-server",
+						Usage: "Run the DMS server",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "port",
+								Aliases: []string{"p"},
+								Usage:   "Port to listen on",
+								Value:   "8080",
+							},
+							&cli.StringFlag{
+								Name:  "temporal-host",
+								Usage: "Temporal host",
+								Value: "localhost:7233",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return dms_run_server(ctx)
+						},
+					},
+					{
+						Name:  "run-worker",
+						Usage: "Run the temporal worker",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "temporal-host",
+								Usage: "Temporal host",
+								Value: "localhost:7233",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return dms_run_worker(ctx)
+						},
+					},
+					{
+						Name:  "start",
+						Usage: "start a DMS",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "endpoint",
+								Usage: "HTTP server endpoint",
+								Value: "http://localhost:8080",
+							},
+							&cli.StringFlag{
+								Name:     "id",
+								Required: true,
+								Aliases:  []string{"i"},
+								Usage:    "ID for the DMS",
+							},
+							&cli.StringFlag{
+								Name:     "message",
+								Required: true,
+								Aliases:  []string{"m"},
+								Usage:    "Message to send as contingency",
+							},
+							&cli.StringFlag{
+								Name:     "duration",
+								Required: true,
+								Aliases:  []string{"dur", "d"},
+								Usage:    "DMS duration in Go time.Duration format (e.g., 15m)",
+							},
+							&cli.StringFlag{
+								Name:    "webhook",
+								Aliases: []string{"web", "w"},
+								Usage:   "Webhook endpoint for contingency message",
+								Value:   "http://localhost:8080/webhook",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return start_dms(ctx)
+						},
+					},
+					{
+						Name:  "get-state",
+						Usage: "Get the current state of the DMS",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "endpoint",
+								Usage: "HTTP endpoint",
+								Value: "http://localhost:8080",
+							},
+							&cli.StringFlag{
+								Name:     "id",
+								Required: true,
+								Aliases:  []string{"i"},
+								Usage:    "ID for the DMS",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return get_dms_state(ctx)
+						},
+					},
+					{
+						Name:  "deactivate",
+						Usage: "deactivate a DMS",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "endpoint",
+								Usage: "HTTP endpoint",
+								Value: "http://localhost:8080",
+							},
+							&cli.StringFlag{
+								Name:     "id",
+								Required: true,
+								Aliases:  []string{"i"},
+								Usage:    "ID for the DMS",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return dms_deactivate(ctx)
 						},
 					},
 				},

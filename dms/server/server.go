@@ -7,11 +7,15 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/brojonat/temporal-examples/auction/temporal"
 	"github.com/brojonat/temporal-examples/convenience"
+	"github.com/brojonat/temporal-examples/dms/temporal"
 	"github.com/brojonat/temporal-examples/worker"
 	"go.temporal.io/sdk/client"
 )
+
+func idFromID(id string) string {
+	return fmt.Sprintf("dms: %s", id)
+}
 
 // run an http server with endpoints for the auction workflow
 func RunHTTPServer(
@@ -32,7 +36,7 @@ func RunHTTPServer(
 
 	mux := http.NewServeMux()
 	mux.Handle("POST /start", handleStart(l, tc))
-	mux.Handle("POST /bid", handleBid(l, tc))
+	mux.Handle("POST /deactivate", handleDeactivate(l, tc))
 	mux.Handle("GET /get-state", handleGetState(l, tc))
 	mux.Handle("POST /webhook", handleResult(l, tc))
 
@@ -41,21 +45,25 @@ func RunHTTPServer(
 	return http.ListenAndServe(listenAddr, mux)
 }
 
-// start an auction
+// start a dms
 func handleStart(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		var payload temporal.RunAuctionWFRequest
+		var payload temporal.RunDMSWFRequest
 		err := json.NewDecoder(r.Body).Decode(&payload)
 		if err != nil {
 			convenience.WriteInternalError(l, w, err)
 			return
 		}
+		if payload.ID == "" || payload.Message == "" {
+			convenience.WriteBadRequestError(w, fmt.Errorf("must supply dms id and message"))
+			return
+		}
 		wopts := client.StartWorkflowOptions{
-			ID:        payload.Item,
+			ID:        idFromID(payload.ID),
 			TaskQueue: worker.TaskQueue,
 		}
-		_, err = tc.ExecuteWorkflow(r.Context(), wopts, temporal.RunAuctionWF, payload)
+		_, err = tc.ExecuteWorkflow(r.Context(), wopts, temporal.RunDMSWF, payload)
 		if err != nil {
 			convenience.WriteInternalError(l, w, err)
 			return
@@ -64,64 +72,51 @@ func handleStart(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	}
 }
 
-// query the workflow for the current top bid
+// query the dms for the current state
 func handleGetState(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		response, err := tc.QueryWorkflow(
-			r.Context(), r.URL.Query().Get("item"), "", temporal.QueryTypeState)
+		id := idFromID(r.URL.Query().Get("id"))
+		response, err := tc.QueryWorkflow(r.Context(), id, "", temporal.QueryTypeState)
 		if err != nil {
 			convenience.WriteInternalError(l, w, err)
 			return
 		}
-		var result temporal.QueryResultState
+		var result string
 		if err = response.Get(&result); err != nil {
 			convenience.WriteInternalError(l, w, err)
 			return
 		}
-		msg := fmt.Sprintf("top bid by %s for %f", result.Bidder, result.Amount)
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(convenience.DefaultJSONResponse{Message: msg})
+		json.NewEncoder(w).Encode(convenience.DefaultJSONResponse{Message: result})
 	}
 }
 
-// send a signal to the workflow with the supplied bid
-func handleBid(l *slog.Logger, tc client.Client) http.HandlerFunc {
+// deactivate the dms
+func handleDeactivate(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		var payload temporal.AuctionBid
-		err := json.NewDecoder(r.Body).Decode(&payload)
+		id := idFromID(r.URL.Query().Get("id"))
+		err := tc.SignalWorkflow(r.Context(), id, "", temporal.SignalTypeDeactivate, nil)
 		if err != nil {
 			convenience.WriteBadRequestError(w, err)
 			return
 		}
-
-		err = tc.SignalWorkflow(r.Context(), payload.Item, "", temporal.SignalTypeBid, payload)
-		if err != nil {
-			convenience.WriteBadRequestError(w, err)
-			return
-		}
-
 		convenience.WriteOK(w)
 	}
 }
 
-// handle the winning bid webhook
+// handle the dms timeout
 func handleResult(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		var payload temporal.AuctionBid
+		var payload temporal.DMSTimeoutPayload
 		err := json.NewDecoder(r.Body).Decode(&payload)
 		if err != nil {
 			convenience.WriteBadRequestError(w, err)
 			return
 		}
-
 		l.Info(
-			"got auction result",
-			"item", payload.Item,
-			"bidder", payload.Bidder,
-			"amount", payload.Amount,
+			"got dms timeout",
+			"message", payload.Message,
 		)
 		convenience.WriteOK(w)
 	}

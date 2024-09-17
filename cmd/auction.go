@@ -11,6 +11,7 @@ import (
 
 	"github.com/brojonat/temporal-examples/auction/server"
 	"github.com/brojonat/temporal-examples/auction/temporal"
+	"github.com/brojonat/temporal-examples/convenience"
 	"github.com/brojonat/temporal-examples/worker"
 	"github.com/urfave/cli/v2"
 )
@@ -116,6 +117,11 @@ func get_auction_state(ctx *cli.Context) error {
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("bad response code (%d): %s", res.StatusCode, b)
 	}
-	fmt.Printf("%s\n", b)
+	var body convenience.DefaultJSONResponse
+	err = json.Unmarshal(b, &body)
+	if err != nil {
+		return fmt.Errorf("could not parse message: %w: %s", err, b)
+	}
+	fmt.Println(body.Message)
 	return nil
 }

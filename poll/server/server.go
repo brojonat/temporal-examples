@@ -40,7 +40,7 @@ func RunHTTPServer(
 	mux.Handle("POST /start", handleStart(l, tc))
 	mux.Handle("POST /vote", handleVote(l, tc))
 	mux.Handle("GET /get-state", handleGetState(l, tc))
-	mux.Handle("POST /handle-result", handleResult(l, tc))
+	mux.Handle("POST /webhook", handleResult(l, tc))
 
 	listenAddr := fmt.Sprintf(":%s", port)
 	l.Info("listening", "port", listenAddr)

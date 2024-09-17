@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/brojonat/temporal-examples/convenience"
-	"github.com/brojonat/temporal-examples/poll/server"
-	"github.com/brojonat/temporal-examples/poll/temporal"
+	"github.com/brojonat/temporal-examples/dms/server"
+	"github.com/brojonat/temporal-examples/dms/temporal"
 	"github.com/brojonat/temporal-examples/worker"
 	"github.com/urfave/cli/v2"
 )
 
-func poll_run_server(ctx *cli.Context) error {
+func dms_run_server(ctx *cli.Context) error {
 	return server.RunHTTPServer(
 		ctx.Context,
 		getDefaultLogger(slog.LevelInfo),
@@ -25,7 +25,7 @@ func poll_run_server(ctx *cli.Context) error {
 	)
 }
 
-func poll_run_worker(ctx *cli.Context) error {
+func dms_run_worker(ctx *cli.Context) error {
 	return worker.RunWorker(
 		ctx.Context,
 		getDefaultLogger(slog.LevelInfo),
@@ -33,23 +33,20 @@ func poll_run_worker(ctx *cli.Context) error {
 	)
 }
 
-func start_poll(ctx *cli.Context) error {
+func start_dms(ctx *cli.Context) error {
 	dur, err := time.ParseDuration(ctx.String("duration"))
 	if err != nil {
 		return err
 	}
-	body := temporal.RunPollWFRequest{
+	body := temporal.RunDMSWFRequest{
 		StartTime: time.Now(),
+		ID:        ctx.String("id"),
+		Message:   ctx.String("message"),
 		Duration:  dur,
-		Prompt:    ctx.String("prompt"),
-		Options:   ctx.StringSlice("option"),
 		Webhook:   ctx.String("webhook"),
 	}
-	if len(body.Prompt) < 1 {
-		return fmt.Errorf("must supply a poll prompt")
-	}
-	if len(body.Options) < 1 {
-		return fmt.Errorf("must supply at least one option")
+	if len(body.ID) < 1 {
+		return fmt.Errorf("must supply a dms id")
 	}
 	b, err := json.Marshal(body)
 	if err != nil {
@@ -74,29 +71,14 @@ func start_poll(ctx *cli.Context) error {
 	return fmt.Errorf("bad response code (%d): %s", res.StatusCode, b)
 }
 
-func poll_vote(ctx *cli.Context) error {
-	body := temporal.PollVote{
-		Prompt: ctx.String("prompt"),
-		Option: ctx.String("option"),
-		Amount: ctx.Float64("amount"),
-	}
-	if len(body.Prompt) < 1 {
-		return fmt.Errorf("must supply a poll prompt")
-	}
-	if body.Option == "" {
-		return fmt.Errorf("must specify option")
-	}
-	if body.Amount < 0 {
-		return fmt.Errorf("cannot vote a negative amount")
-	}
-	b, err := json.Marshal(body)
+func dms_deactivate(ctx *cli.Context) error {
+	r, err := http.NewRequest(http.MethodPost, ctx.String("endpoint")+"/deactivate", nil)
 	if err != nil {
 		return err
 	}
-	r, err := http.NewRequest(http.MethodPost, ctx.String("endpoint")+"/vote", bytes.NewReader(b))
-	if err != nil {
-		return err
-	}
+	q := r.URL.Query()
+	q.Add("id", ctx.String("id"))
+	r.URL.RawQuery = q.Encode()
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {
 		return err
@@ -105,20 +87,20 @@ func poll_vote(ctx *cli.Context) error {
 		return nil
 	}
 	defer res.Body.Close()
-	b, err = io.ReadAll(res.Body)
+	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("bad response code (%d) and error reading body: %w", res.StatusCode, err)
 	}
 	return fmt.Errorf("bad response code (%d): %s", res.StatusCode, b)
 }
 
-func get_poll_state(ctx *cli.Context) error {
+func get_dms_state(ctx *cli.Context) error {
 	r, err := http.NewRequest(http.MethodGet, ctx.String("endpoint")+"/get-state", nil)
 	if err != nil {
 		return err
 	}
 	q := r.URL.Query()
-	q.Add("prompt", ctx.String("prompt"))
+	q.Add("id", ctx.String("id"))
 	r.URL.RawQuery = q.Encode()
 	res, err := http.DefaultClient.Do(r)
 	if err != nil {

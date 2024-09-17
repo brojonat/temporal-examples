@@ -40,6 +40,19 @@ Package `poll` provides an example implementation of a simple poll.
 
 Package `dms` provides an example implementation of a [Dead man's Switch](https://en.wikipedia.org/wiki/Dead_man%27s_switch).
 
+```bash
+# in one terminal, start the HTTP server
+./cli dms run-server
+# in another terminal run the worker
+./cli dms run-worker
+# in another terminal start a DMS and query the state;
+# after 20 min you should see a message in the server logs
+# indicating the webhook was hit with the DMS timeout.
+./cli dms start --id foo --duration 20m --message 'oh no, switch timed out!'
+./cli dms get-state --id foo
+./cli dms deactivate --id foo
+```
+
 ## Tontine
 
 Package `tontine` provides an example implementation of a [tontine](https://en.wikipedia.org/wiki/Tontine).
