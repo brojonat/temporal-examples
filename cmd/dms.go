@@ -60,10 +60,10 @@ func start_dms(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode == http.StatusOK {
 		return nil
 	}
-	defer res.Body.Close()
 	b, err = io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("bad response code (%d) and error reading body: %w", res.StatusCode, err)
@@ -83,10 +83,10 @@ func dms_deactivate(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 	if res.StatusCode == http.StatusOK {
 		return nil
 	}
-	defer res.Body.Close()
 	b, err := io.ReadAll(res.Body)
 	if err != nil {
 		return fmt.Errorf("bad response code (%d) and error reading body: %w", res.StatusCode, err)
