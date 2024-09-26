@@ -55,12 +55,43 @@ Package `dms` provides an example implementation of a [Dead man's Switch](https:
 
 ## Tontine
 
-Package `tontine` provides an example implementation of a [tontine](https://en.wikipedia.org/wiki/Tontine).
+[TODO] Package `tontine` provides an example implementation of a [tontine](https://en.wikipedia.org/wiki/Tontine).
 
 ## Lottery
 
-Package `lotto` provides an example implementation of a lottery.
+[TODO] Package `lotto` provides an example implementation of a lottery.
 
 ## Escrow
 
-Package `escrow` provides an example implementation of an escrow process.
+[TODO] Package `escrow` provides an example implementation of an escrow process.
+
+## Prometheus
+
+Package `prom` provides an example implementation of a workflow that emits Prometheus metrics. This is handy if you're interested in instrumenting your Temporal workers.
+
+```bash
+# in one terminal, start the HTTP server
+./cli prom run-server
+# in another terminal run the worker
+./cli prom run-worker
+# in another terminal, start the workflow
+./cli prom start
+# finally, you can hit the metrics endpoint and see your prometheus metrics
+curl localhost:9090
+```
+
+## Activity Heartbeats and Continue-As-New
+
+Package `heart` provides and example implementation of a workflow with a very long running activity. When working with such Activities, you need to emit heartbeats to indicate to the Workflow that the Activity process isn't dead. Under these circumstances, you may also want to use "Continue As New" to avoid history/memory overflow issues. This package demonstrates how to do both.
+
+```bash
+# in one terminal, start the HTTP server
+./cli heart run-server
+# in another terminal run the worker
+./cli heart run-worker
+# in another terminal, start the workflow
+./cli heart start
+# finally, for this one, there's not fancy result, but you can open the
+# temporal dashboard and see the activity running and eventually see the
+# workflow continuing as a new.
+```
