@@ -77,12 +77,18 @@ Package `prom` provides an example implementation of a workflow that emits Prome
 # in another terminal, start the workflow
 ./cli prom start
 # finally, you can hit the metrics endpoint and see your prometheus metrics
-curl localhost:9090
+curl localhost:9090/metrics
+# HELP temporal_samples_foo_counter_total temporal_samples_foo_counter_total counter
+# TYPE temporal_samples_foo_counter_total counter
+temporal_samples_foo_counter_total{activity_type="RunPromActivity",client_name="temporal_go",namespace="default",prom_test_label="foo",task_queue="temporal_examples",worker_type="none",workflow_type="RunPromWF"} 31
+# HELP temporal_samples_foo_gauge temporal_samples_foo_gauge gauge
+# TYPE temporal_samples_foo_gauge gauge
+temporal_samples_foo_gauge{activity_type="RunPromActivity",client_name="temporal_go",namespace="default",prom_test_label="foo",task_queue="temporal_examples",worker_type="none",workflow_type="RunPromWF"} 1.727373674e+09
 ```
 
 ## Activity Heartbeats and Continue-As-New
 
-Package `heart` provides and example implementation of a workflow with a very long running activity. When working with such Activities, you need to emit heartbeats to indicate to the Workflow that the Activity process isn't dead. Under these circumstances, you may also want to use "Continue As New" to avoid history/memory overflow issues. This package demonstrates how to do both.
+Package `heart` provides and example implementation of a workflow with a very long running activity. When working with such Activities, you need to emit heartbeats to indicate to the Workflow that the Activity process isn't dead. Similarly, when you have very long running Workflows with lots of events, you may also want to use "Continue As New" to avoid history/memory overflow issues. This package demonstrates how to do both.
 
 ```bash
 # in one terminal, start the HTTP server
@@ -91,7 +97,8 @@ Package `heart` provides and example implementation of a workflow with a very lo
 ./cli heart run-worker
 # in another terminal, start the workflow
 ./cli heart start
-# finally, for this one, there's not fancy result, but you can open the
+# for this one, there's no fancy result to see, but you can open the
 # temporal dashboard and see the activity running and eventually see the
-# workflow continuing as a new.
+# workflow continuing as a new. You can find the next workflow execution
+# under the "relationships" tab.
 ```
