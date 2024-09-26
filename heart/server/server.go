@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/brojonat/temporal-examples/convenience"
-	"github.com/brojonat/temporal-examples/prom/temporal"
+	"github.com/brojonat/temporal-examples/heart/temporal"
 	"github.com/brojonat/temporal-examples/worker"
 	"go.temporal.io/sdk/client"
 )
@@ -37,14 +37,14 @@ func RunHTTPServer(
 	return http.ListenAndServe(listenAddr, mux)
 }
 
-// start a prom metric emitting workflow
+// start a long lived workflow
 func handleStart(l *slog.Logger, tc client.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		wopts := client.StartWorkflowOptions{
-			ID:        "prom-test-workflow",
+			ID:        "heartbeat-and-continue-workflow",
 			TaskQueue: worker.TaskQueue,
 		}
-		_, err := tc.ExecuteWorkflow(r.Context(), wopts, temporal.RunPromWF)
+		_, err := tc.ExecuteWorkflow(r.Context(), wopts, temporal.RunHeartWF)
 		if err != nil {
 			convenience.WriteInternalError(l, w, err)
 			return

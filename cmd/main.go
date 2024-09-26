@@ -462,6 +462,60 @@ func main() {
 					},
 				},
 			},
+			{
+				Name:  "heart",
+				Usage: "Heart related subcommands",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "run-server",
+						Usage: "Run the heart server",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:    "port",
+								Aliases: []string{"p"},
+								Usage:   "Port to listen on",
+								Value:   "8080",
+							},
+							&cli.StringFlag{
+								Name:  "temporal-host",
+								Usage: "Temporal host",
+								Value: "localhost:7233",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return heart_run_server(ctx)
+						},
+					},
+					{
+						Name:  "run-worker",
+						Usage: "Run the temporal worker",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "temporal-host",
+								Usage: "Temporal host",
+								Value: "localhost:7233",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return heart_run_worker(ctx)
+						},
+					},
+					{
+						Name:  "start",
+						Usage: "start a heartbeating and continuing workflow",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:  "endpoint",
+								Usage: "HTTP server endpoint",
+								Value: "http://localhost:8080",
+							},
+						},
+						Action: func(ctx *cli.Context) error {
+							return start_heart(ctx)
+						},
+					},
+				},
+			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {

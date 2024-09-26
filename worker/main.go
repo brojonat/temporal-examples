@@ -7,6 +7,7 @@ import (
 
 	auction "github.com/brojonat/temporal-examples/auction/temporal"
 	dms "github.com/brojonat/temporal-examples/dms/temporal"
+	heart "github.com/brojonat/temporal-examples/heart/temporal"
 	poll "github.com/brojonat/temporal-examples/poll/temporal"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -30,11 +31,13 @@ func RunWorker(ctx context.Context, l *slog.Logger, thp string) error {
 	w.RegisterWorkflow(auction.RunAuctionWF)
 	w.RegisterWorkflow(poll.RunPollWF)
 	w.RegisterWorkflow(dms.RunDMSWF)
+	w.RegisterWorkflow(heart.RunHeartWF)
 
 	// register activities
 	w.RegisterActivity(auction.RunAuctionCompleteWebhook)
 	w.RegisterActivity(poll.RunPollCompleteWebhook)
 	w.RegisterActivity(dms.RunDMSTimeoutWebhook)
+	w.RegisterActivity(heart.RunHeartActivity)
 	return w.Run(worker.InterruptCh())
 
 }
