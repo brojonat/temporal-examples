@@ -77,7 +77,13 @@ Package `prom` provides an example implementation of a workflow that emits Prome
 # in another terminal, start the workflow
 ./cli prom start
 # finally, you can hit the metrics endpoint and see your prometheus metrics
-curl localhost:9090
+curl localhost:9090/metrics
+# HELP temporal_samples_foo_counter_total temporal_samples_foo_counter_total counter
+# TYPE temporal_samples_foo_counter_total counter
+temporal_samples_foo_counter_total{activity_type="RunPromActivity",client_name="temporal_go",namespace="default",prom_test_label="foo",task_queue="temporal_examples",worker_type="none",workflow_type="RunPromWF"} 31
+# HELP temporal_samples_foo_gauge temporal_samples_foo_gauge gauge
+# TYPE temporal_samples_foo_gauge gauge
+temporal_samples_foo_gauge{activity_type="RunPromActivity",client_name="temporal_go",namespace="default",prom_test_label="foo",task_queue="temporal_examples",worker_type="none",workflow_type="RunPromWF"} 1.727373674e+09
 ```
 
 ## Activity Heartbeats and Continue-As-New
