@@ -2,6 +2,44 @@
 
 A collection of long lived business logic processes implemented with Temporal. Build the CLI with `go build -o cli cmd/*`, then simply `./cli --help`.
 
+## Prometheus
+
+Package `prom` provides an example implementation of a workflow that emits Prometheus metrics. This is handy if you're interested in instrumenting your Temporal workers.
+
+```bash
+# in one terminal, start the HTTP server
+./cli prom run-server
+# in another terminal run the worker
+./cli prom run-worker
+# in another terminal, start the workflow
+./cli prom start
+# finally, you can hit the metrics endpoint and see your prometheus metrics
+curl localhost:9090/metrics
+# HELP temporal_samples_foo_counter_total temporal_samples_foo_counter_total counter
+# TYPE temporal_samples_foo_counter_total counter
+temporal_samples_foo_counter_total{activity_type="RunPromActivity",client_name="temporal_go",namespace="default",prom_test_label="foo",task_queue="temporal_examples",worker_type="none",workflow_type="RunPromWF"} 31
+# HELP temporal_samples_foo_gauge temporal_samples_foo_gauge gauge
+# TYPE temporal_samples_foo_gauge gauge
+temporal_samples_foo_gauge{activity_type="RunPromActivity",client_name="temporal_go",namespace="default",prom_test_label="foo",task_queue="temporal_examples",worker_type="none",workflow_type="RunPromWF"} 1.727373674e+09
+```
+
+## Activity Heartbeats and Continue-As-New
+
+Package `heart` provides and example implementation of a workflow with a very long running activity. When working with such Activities, you need to emit heartbeats to indicate to the Workflow that the Activity process isn't dead. Similarly, when you have very long running Workflows with lots of events, you may also want to use "Continue As New" to avoid history/memory overflow issues. This package demonstrates how to do both.
+
+```bash
+# in one terminal, start the HTTP server
+./cli heart run-server
+# in another terminal run the worker
+./cli heart run-worker
+# in another terminal, start the workflow
+./cli heart start
+# for this one, there's no fancy result to see, but you can open the
+# temporal dashboard and see the activity running and eventually see the
+# workflow continuing as a new. You can find the next workflow execution
+# under the "relationships" tab.
+```
+
 ## Auction
 
 Package `auction` provides an example implementation of an auction clearing house.
@@ -65,40 +103,10 @@ Package `dms` provides an example implementation of a [Dead man's Switch](https:
 
 [TODO] Package `escrow` provides an example implementation of an escrow process.
 
-## Prometheus
+## Trading Strategy: Market Maker
 
-Package `prom` provides an example implementation of a workflow that emits Prometheus metrics. This is handy if you're interested in instrumenting your Temporal workers.
+[TODO] Package `mm` provides an example implementation of a market maker. The workflow places limit bid (ask) orders of a fixed size below (above) the current market price.
 
-```bash
-# in one terminal, start the HTTP server
-./cli prom run-server
-# in another terminal run the worker
-./cli prom run-worker
-# in another terminal, start the workflow
-./cli prom start
-# finally, you can hit the metrics endpoint and see your prometheus metrics
-curl localhost:9090/metrics
-# HELP temporal_samples_foo_counter_total temporal_samples_foo_counter_total counter
-# TYPE temporal_samples_foo_counter_total counter
-temporal_samples_foo_counter_total{activity_type="RunPromActivity",client_name="temporal_go",namespace="default",prom_test_label="foo",task_queue="temporal_examples",worker_type="none",workflow_type="RunPromWF"} 31
-# HELP temporal_samples_foo_gauge temporal_samples_foo_gauge gauge
-# TYPE temporal_samples_foo_gauge gauge
-temporal_samples_foo_gauge{activity_type="RunPromActivity",client_name="temporal_go",namespace="default",prom_test_label="foo",task_queue="temporal_examples",worker_type="none",workflow_type="RunPromWF"} 1.727373674e+09
-```
+## Trading Strategy: The Wheel
 
-## Activity Heartbeats and Continue-As-New
-
-Package `heart` provides and example implementation of a workflow with a very long running activity. When working with such Activities, you need to emit heartbeats to indicate to the Workflow that the Activity process isn't dead. Similarly, when you have very long running Workflows with lots of events, you may also want to use "Continue As New" to avoid history/memory overflow issues. This package demonstrates how to do both.
-
-```bash
-# in one terminal, start the HTTP server
-./cli heart run-server
-# in another terminal run the worker
-./cli heart run-worker
-# in another terminal, start the workflow
-./cli heart start
-# for this one, there's no fancy result to see, but you can open the
-# temporal dashboard and see the activity running and eventually see the
-# workflow continuing as a new. You can find the next workflow execution
-# under the "relationships" tab.
-```
+[TODO] Package `wheel` provides an example implementation of a derivatives trading strategy known as "the wheel", in which a trader continuously cycles equities for options in that equity. The strategy is delta neutral; it is designed to profit from the premium earned by selling an option that is backed by an underlying.
