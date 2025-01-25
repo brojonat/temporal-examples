@@ -516,6 +516,59 @@ func main() {
 					},
 				},
 			},
+			{
+				Name:  "tontine",
+				Usage: "Tontine related subcommands",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "run-server",
+						Usage: "Start the HTTP server",
+						Action: func(ctx *cli.Context) error {
+							return tontine_run_server(ctx)
+						},
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "port", Required: true},
+							&cli.StringFlag{Name: "temporal-host", Required: true},
+						},
+					},
+					{
+						Name:  "start",
+						Usage: "Start a new tontine",
+						Action: func(ctx *cli.Context) error {
+							return start_tontine(ctx)
+						},
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "name", Required: true},
+							&cli.StringSliceFlag{Name: "participant", Required: true},
+							&cli.StringFlag{Name: "endpoint", Required: true},
+						},
+					},
+					{
+						Name:  "signal-alive",
+						Usage: "Signal a participant's alive status",
+						Action: func(ctx *cli.Context) error {
+							return signal_participant_alive(ctx)
+						},
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "name", Required: true},
+							&cli.StringFlag{Name: "participant", Required: true},
+							&cli.BoolFlag{Name: "alive", Required: true},
+							&cli.StringFlag{Name: "endpoint", Required: true},
+						},
+					},
+					{
+						Name:  "get-state",
+						Usage: "Get the current state of a tontine",
+						Action: func(ctx *cli.Context) error {
+							return get_tontine_state(ctx)
+						},
+						Flags: []cli.Flag{
+							&cli.StringFlag{Name: "name", Required: true},
+							&cli.StringFlag{Name: "endpoint", Required: true},
+						},
+					},
+				},
+			},
 		},
 	}
 	if err := app.Run(os.Args); err != nil {
