@@ -11,6 +11,11 @@ const (
 	SignalParticipantAlive = "signal-participant-alive"
 )
 
+type SignalParticipant struct {
+	Name  string
+	Alive bool
+}
+
 // Participant represents a member of the tontine.
 type Participant struct {
 	Name         string
@@ -34,52 +39,54 @@ func TontineWorkflow(ctx workflow.Context, participants []Participant, payoutInt
 		LastPayout:   workflow.Now(ctx),
 	}
 
-	// Set activity options
-	ao := workflow.ActivityOptions{
-		StartToCloseTimeout: time.Minute,
-	}
-	ctx = workflow.WithActivityOptions(ctx, ao)
-
-	// Collect initial contributions
-	for i, p := range state.Participants {
-		var contribution float64
-		err := workflow.ExecuteActivity(ctx, CollectContributionActivity, p.Name, p.Contribution).Get(ctx, &contribution)
-		if err != nil {
-			return err
+	// Start a goroutine to handle the signal reception loop
+	workflow.Go(ctx, func(ctx workflow.Context) {
+		// setup listener for deceased participants
+		signalChannel := workflow.GetSignalChannel(ctx, SignalParticipantAlive)
+		// Create a workflow.Selector to handle multiple events
+		selector := workflow.NewSelector(ctx)
+		selector.AddReceive(signalChannel, func(c workflow.ReceiveChannel, more bool) {
+			var sp SignalParticipant
+			c.Receive(ctx, &sp)
+			for i, p := range state.Participants {
+				if p.Name == sp.Name {
+					state.Participants[i].Alive = sp.Alive
+				}
+			}
+		})
+		for {
+			selector.Select(ctx)
 		}
-		state.TotalFund += contribution
-		state.Participants[i].Contribution = contribution
-	}
+	})
 
 	// Periodic payouts
 	for len(state.Participants) > 1 {
 		workflow.Sleep(ctx, payoutInterval)
 
-		// Distribute payouts
-		err := workflow.ExecuteActivity(ctx, PayoutActivity, state).Get(ctx, &state.TotalFund)
-		if err != nil {
-			return err
-		}
-
 		// Remove deceased participants
 		var updatedParticipants []Participant
 		for _, p := range state.Participants {
-			var alive bool
-			err := workflow.ExecuteActivity(ctx, CheckIfAliveActivity, p.Name).Get(ctx, &alive)
-			if err != nil {
-				return err
-			}
-			if alive {
+			if p.Alive {
 				updatedParticipants = append(updatedParticipants, p)
 			}
 		}
 		state.Participants = updatedParticipants
+
+		// terminate if no participants
+		if len(state.Participants) == 0 {
+			break
+		}
+
+		// distribute regular payouts
+		if err := workflow.ExecuteActivity(ctx, RegularPayoutActivity, state).Get(ctx, &state.TotalFund); err != nil {
+			return err
+		}
 	}
 
-	// Handle the final survivor
+	// distribute to the final remaining participant; if there's no survivors, distribute back to the bank
+	rp := "bank"
 	if len(state.Participants) == 1 {
-		return workflow.ExecuteActivity(ctx, FinalPayoutActivity, state.Participants[0].Name, state.TotalFund).Get(ctx, nil)
+		rp = state.Participants[0].Name
 	}
-
-	return nil
+	return workflow.ExecuteActivity(ctx, FinalPayoutActivity, rp, state.TotalFund).Get(ctx, nil)
 }

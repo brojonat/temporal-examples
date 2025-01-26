@@ -104,8 +104,13 @@ func handleSignalAlive(l *slog.Logger, tc client.Client) http.HandlerFunc {
 			return
 		}
 
+		sp := temporal.SignalParticipant{
+			Name:  payload.Name,
+			Alive: payload.Alive,
+		}
+
 		id := idFromTontineName(payload.Name)
-		err := tc.SignalWorkflow(r.Context(), id, "", temporal.SignalParticipantAlive, payload)
+		err := tc.SignalWorkflow(r.Context(), id, "", temporal.SignalParticipantAlive, sp)
 		if err != nil {
 			convenience.WriteBadRequestError(w, err)
 			return
